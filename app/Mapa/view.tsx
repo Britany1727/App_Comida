@@ -2,22 +2,22 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MapView } from '../../src/components/MapView';
 
 export default function MapaView() {
-  const router = useRouter();
-  const params = useLocalSearchParams<{ lat: string; lng: string; name?: string }>();
+    const router = useRouter();
+    const params = useLocalSearchParams<{ lat: string; lng: string; name?: string }>();
 
-  const lat = parseFloat(params.lat);
-  const lng = parseFloat(params.lng);
+    const lat = parseFloat(params.lat);
+    const lng = parseFloat(params.lng);
 
-  if (isNaN(lat) || isNaN(lng)) {
-    return null;
-  }
+    if (isNaN(lat) || isNaN(lng)) {
+        return null;
+    }
 
-  return (
-    <MapView
-      platoLat={lat}
-      platoLng={lng}
-      platoName={params.name}
-      onClose={() => router.back()}
-    />
-  );
+    return (
+        <MapView
+        platoLat={lat}
+        platoLng={lng}
+        platoName={params.name}
+        onClose={() => router.back()}
+        />
+    );
 }

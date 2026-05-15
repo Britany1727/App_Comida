@@ -1,10 +1,17 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { View, Text, Image, Pressable, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { Text, View, Image, Pressable, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useMemo } from 'react';
 import { getDistance } from 'geolib';
-import { usePlatos } from '@/src/hooks/usePlatos';
+import Animated, {
+  FadeInDown,
+  useAnimatedStyle,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
+import { usePlatos, useEliminarPlato } from '@/src/hooks/usePlatos';
 import { useLocation } from '@/src/hooks/useLocation';
 import { Plato } from '@/src/types/plato';
 
@@ -14,6 +21,33 @@ function formatDistance(meters: number): { value: string; unit: string } {
   }
   const km = meters / 1000;
   return { value: km.toFixed(1), unit: 'km' };
+}
+
+function LiveDot() {
+  const style = useAnimatedStyle(() => ({
+    opacity: withRepeat(
+      withSequence(
+        withTiming(0.3, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 800, easing: Easing.inOut(Easing.ease) })
+      ),
+      -1,
+      true
+    ),
+    transform: [
+      {
+        scale: withRepeat(
+          withSequence(
+            withTiming(0.8, { duration: 800 }),
+            withTiming(1, { duration: 800 })
+          ),
+          -1,
+          true
+        ),
+      },
+    ],
+  }));
+
+  return <Animated.View style={[styles.liveDot, style]} />;
 }
 
 export default function PlatoDetail() {
@@ -36,54 +70,84 @@ export default function PlatoDetail() {
     });
   }, [location, plato?.latitude, plato?.longitude]);
 
+  const eliminarMutation = useEliminarPlato();
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Eliminar plato',
+      `¿Estás seguro de eliminar "${plato?.name}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            eliminarMutation.mutate(id, {
+              onSuccess: () => router.back(),
+            });
+          },
+        },
+      ]
+    );
+  };
+
   if (isLoading) {
     return (
-      <LinearGradient colors={['#006391', '#E21837', '#1e293b']} style={styles.loadingContainer}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#38bdf8" />
-      </LinearGradient>
+      </View>
     );
   }
 
   if (!plato) {
     return (
-      <LinearGradient colors={['#006391', '#E21837', '#1e293b']} style={styles.loadingContainer}>
+      <View style={styles.loadingContainer}>
         <Ionicons name="sad-outline" size={64} color="#94a3b8" />
         <Text style={styles.notFoundText}>Plato no encontrado</Text>
         <Pressable onPress={() => router.back()} style={styles.backLink}>
           <Text style={styles.backLinkText}>Volver</Text>
         </Pressable>
-      </LinearGradient>
+      </View>
     );
   }
 
   const hasCoords = !!(plato.latitude && plato.longitude);
 
   return (
-    <LinearGradient colors={['#006391', '#E21837', '#1e293b']} style={styles.container}>
+    <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="white" />
         </Pressable>
 
-        <View style={styles.card}>
+        <Animated.View
+          entering={FadeInDown.duration(500).springify().dampingRatio(0.8)}
+          style={styles.card}
+        >
           {plato.photo_uri && (
             <Image source={{ uri: plato.photo_uri }} style={styles.image} />
           )}
 
-          <View style={styles.content}>
+          <Animated.View style={styles.content}>
             <Text style={styles.name}>{plato.name}</Text>
 
             {(plato.city || plato.country) && (
-              <View style={styles.row}>
+              <Animated.View
+                entering={FadeInDown.duration(400).delay(150).springify()}
+                style={styles.row}
+              >
                 <Ionicons name="location-outline" size={18} color="#22d3ee" />
                 <Text style={styles.locationText}>
                   {[plato.city, plato.country].filter(Boolean).join(', ')}
                 </Text>
-              </View>
+              </Animated.View>
             )}
 
             {plato.created_at && (
-              <View style={styles.row}>
+              <Animated.View
+                entering={FadeInDown.duration(400).delay(250).springify()}
+                style={styles.row}
+              >
                 <Ionicons name="calendar-outline" size={18} color="#94a3b8" />
                 <Text style={styles.metaText}>
                   {new Date(plato.created_at).toLocaleDateString('es-PE', {
@@ -92,34 +156,46 @@ export default function PlatoDetail() {
                     day: 'numeric',
                   })}
                 </Text>
-              </View>
+              </Animated.View>
             )}
 
             {hasCoords ? (
-              <View style={styles.coordsBox}>
+              <Animated.View
+                entering={FadeInDown.duration(400).delay(350).springify()}
+                style={styles.coordsBox}
+              >
                 <Ionicons name="earth" size={16} color="#38bdf8" />
                 <Text style={styles.coordsText}>
                   {plato.latitude!.toFixed(6)}, {plato.longitude!.toFixed(6)}
                 </Text>
-              </View>
+              </Animated.View>
             ) : (
-              <View style={styles.coordsBox}>
+              <Animated.View
+                entering={FadeInDown.duration(400).delay(350).springify()}
+                style={styles.coordsBox}
+              >
                 <Ionicons name="alert-circle-outline" size={16} color="#fbbf24" />
                 <Text style={styles.noCoordsText}>Sin ubicación registrada</Text>
-              </View>
+              </Animated.View>
             )}
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
 
         {hasCoords && (
-          <View style={styles.distanceCard}>
+          <Animated.View
+            entering={FadeInDown.duration(500).delay(250).springify().dampingRatio(0.8)}
+            style={styles.distanceCard}
+          >
             <View style={styles.distanceHeader}>
-              <View style={styles.liveDot} />
+              <LiveDot />
               <Text style={styles.distanceTitle}>Distancia desde tu ubicación</Text>
             </View>
 
             {distance !== null ? (
-              <View style={styles.distanceValueRow}>
+              <Animated.View
+                entering={FadeInDown.duration(400).delay(400).springify()}
+                style={styles.distanceValueRow}
+              >
                 <Ionicons name="resize" size={28} color="#22d3ee" />
                 <Text style={styles.distanceValue}>
                   {formatDistance(distance).value}
@@ -127,7 +203,7 @@ export default function PlatoDetail() {
                 <Text style={styles.distanceUnit}>
                   {formatDistance(distance).unit}
                 </Text>
-              </View>
+              </Animated.View>
             ) : (
               <View style={styles.distanceLoadingRow}>
                 <ActivityIndicator size="small" color="#38bdf8" />
@@ -145,33 +221,59 @@ export default function PlatoDetail() {
                   : '---'}
               </Text>
             </View>
-          </View>
+          </Animated.View>
         )}
 
         {hasCoords && (
-          <Pressable
-            onPress={() =>
-              router.push({
-                pathname: '/Mapa/view' as any,
-                params: { lat: plato.latitude, lng: plato.longitude, name: plato.name },
-              } as any)
-            }
+          <Animated.View
+            entering={FadeInDown.duration(500).delay(450).springify().dampingRatio(0.8)}
             style={styles.mapBtnWrapper}
           >
-            <LinearGradient colors={['#059669', '#10b981']} style={styles.mapBtn}>
-              <Ionicons name="map-outline" size={22} color="white" />
-              <Text style={styles.mapBtnText}>Ver ubicación</Text>
-            </LinearGradient>
-          </Pressable>
+            <Pressable
+              onPress={() =>
+                router.push({
+                  pathname: '/Mapa/view' as any,
+                  params: { lat: plato.latitude, lng: plato.longitude, name: plato.name },
+                } as any)
+              }
+            >
+              <View style={styles.mapBtn}>
+                <Ionicons name="map-outline" size={22} color="white" />
+                <Text style={styles.mapBtnText}>Ver ubicación</Text>
+              </View>
+            </Pressable>
+          </Animated.View>
         )}
+
+        <Animated.View
+          entering={FadeInDown.duration(500).delay(550).springify().dampingRatio(0.8)}
+          style={styles.deleteBtnWrapper}
+        >
+          <Pressable
+            onPress={handleDelete}
+            disabled={eliminarMutation.isPending}
+          >
+            <View style={styles.deleteBtn}>
+              <Ionicons
+                name={eliminarMutation.isPending ? 'hourglass-outline' : 'trash-outline'}
+                size={20}
+                color="white"
+              />
+              <Text style={styles.deleteBtnText}>
+                {eliminarMutation.isPending ? 'Eliminando...' : 'Eliminar plato'}
+              </Text>
+            </View>
+          </Pressable>
+        </Animated.View>
       </ScrollView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#340156bb',
   },
   loadingContainer: {
     flex: 1,
@@ -180,7 +282,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   notFoundText: {
-    color: '#94a3b8',
+    color: '#1b4b8e',
     fontSize: 18,
     fontWeight: '600',
   },
@@ -206,9 +308,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   card: {
-    backgroundColor: 'rgba(30,41,59,0.85)',
+    backgroundColor: "#7668AF",
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#612278',
     borderRadius: 28,
     overflow: 'hidden',
   },
@@ -242,7 +344,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#0f172a',
+    backgroundColor: '#7309b08d',
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
@@ -259,9 +361,9 @@ const styles = StyleSheet.create({
   },
   distanceCard: {
     marginTop: 20,
-    backgroundColor: 'rgba(30,41,59,0.85)',
+    backgroundColor: '#7668AF',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#612278',
     borderRadius: 28,
     padding: 24,
   },
@@ -278,7 +380,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#22d3ee',
   },
   distanceTitle: {
-    color: '#94a3b8',
+    color: '#100114',
     fontSize: 15,
     fontWeight: '600',
   },
@@ -309,7 +411,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   distanceLoadingText: {
-    color: '#94a3b8',
+    color: '#3c1970',
     fontSize: 15,
   },
   distanceMetaRow: {
@@ -319,7 +421,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   distanceMetaText: {
-    color: '#64748b',
+    color: '#1d2127',
     fontSize: 12,
     fontFamily: 'monospace',
   },
@@ -335,10 +437,30 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 18,
     borderRadius: 22,
+    backgroundColor: '#c966ff9d',
   },
   mapBtnText: {
     color: 'white',
     fontSize: 18,
     fontWeight: '800',
+  },
+  deleteBtnWrapper: {
+    marginTop: 24,
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  deleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 14,
+    borderRadius: 22,
+    backgroundColor: '#c7558a',
+  },
+  deleteBtnText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

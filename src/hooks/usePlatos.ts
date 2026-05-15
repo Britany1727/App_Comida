@@ -22,3 +22,11 @@ export function useAgregarPlato() {
         onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
     });
 }
+
+export function useEliminarPlato() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => platoService.remove(id),
+        onSuccess: () => qc.invalidateQueries({ queryKey: KEY }),
+    });
+}

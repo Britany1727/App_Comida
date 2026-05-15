@@ -33,4 +33,13 @@ export const platoService = {
         if (error) throw new Error(error.message);
         return data;
     },
+
+    remove: async (id: string): Promise<void> => {
+        const {error} = await supabase
+            .from('platos')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw new Error(error.message);
+    },
 };

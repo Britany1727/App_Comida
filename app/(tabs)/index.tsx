@@ -13,19 +13,62 @@ import {
   TextInput,
   View,
   StyleSheet,
-  Animated,
+  TouchableOpacity,
 } from 'react-native';
 
+import Animated, { FadeInDown } from 'react-native-reanimated';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-
-import { LinearGradient } from 'expo-linear-gradient';
+import Entypo from '@expo/vector-icons/Entypo';
 import { Ionicons } from '@expo/vector-icons';
-
-import { usePlatos, useAgregarPlato } from '@/src/hooks/usePlatos';
+import { usePlatos, useAgregarPlato, useEliminarPlato } from '@/src/hooks/usePlatos';
 import { useAuth } from '../../src/providers/auth-provider';
 import { MapSelector } from '@/src/components/MapSelector';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
+import Fontisto from '@expo/vector-icons/Fontisto';
 
+
+
+function PlatoListItem({ item, index, onPress, onDelete }: { item: any; index: number; onPress: () => void; onDelete: () => void }) {
+  return (
+    <Animated.View
+      entering={FadeInDown.duration(400).delay(index * 80).springify().dampingRatio(0.85)}
+    >
+      <Pressable onPress={onPress} style={styles.platoCard}>
+        {item.photo_uri && (
+          <Image source={{ uri: item.photo_uri }} style={styles.platoImage} />
+        )}
+        <View style={styles.platoContent}>
+          <View style={styles.platoTitleRow}>
+            <Text style={styles.platoTitle}>{item.name}</Text>
+            <TouchableOpacity
+              onPress={onDelete}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              style={styles.deleteIconBtn}
+            >
+              <Entypo name="trash" size={24} color="purple" />
+            </TouchableOpacity>
+          </View>
+          {(item.city || item.country) && (
+            <View style={styles.locationRow}>
+              <Ionicons name="location-outline" size={18} color="#22eee0" />
+              <Text style={styles.locationText}>
+                {[item.city, item.country].filter(Boolean).join(', ')}
+              </Text>
+            </View>
+          )}
+          {item.latitude && item.longitude && (
+            <Text style={styles.coords}>
+              {item.latitude.toFixed(4)},{' '}
+              {item.longitude.toFixed(4)}
+            </Text>
+          )}
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
 
 export default function App() {
   const router = useRouter();
@@ -48,6 +91,9 @@ export default function App() {
 
   const agregarMutation = useAgregarPlato();
 
+  const eliminarMutation = useEliminarPlato();  
+
+  
   const pickImage = (useCamera: boolean) => async () => {
     const permission = useCamera
       ? await ImagePicker.requestCameraPermissionsAsync()
@@ -89,6 +135,24 @@ export default function App() {
         style: 'cancel',
       },
     ]);
+  };
+
+  const handleEliminar = (id: string) => {
+    const platoName = platos.find((p) => p.id === id)?.name ?? 'este plato';
+    Alert.alert(
+      'Eliminar plato',
+      `¿Seguro que deseas eliminar "${platoName}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            eliminarMutation.mutate(id);
+          },
+        },
+      ]
+    );
   };
 
   const agregar = async () => {
@@ -147,9 +211,9 @@ export default function App() {
     router.replace('/login');
   };
 
+  
   return (
-    <LinearGradient
-      colors={['#006391', '#E21837', '#1e293b']}
+    <View
       style={styles.container}
     >
       <ScrollView
@@ -169,8 +233,7 @@ export default function App() {
           </View>
 
           <Pressable onPress={handleLogout}>
-            <LinearGradient
-              colors={['#F5F5F5', '#dc2626']}
+            <View
               style={styles.logoutButton}
             >
               <Ionicons
@@ -178,24 +241,17 @@ export default function App() {
                 size={20}
                 color="white"
               />
-
-              <Text style={styles.logoutText}>
-                Salir
-              </Text>
-            </LinearGradient>
+            </View>
           </Pressable>
         </View>
 
         {/* CARD */}
+
         <View style={styles.card}>
 
           <View style={styles.cardHeader}>
             <View style={styles.iconCircle}>
-              <Ionicons
-                name="restaurant"
-                size={26}
-                color="white"
-              />
+              <MaterialIcons name="restaurant-menu" size={24} color="purple" />
             </View>
 
             <View>
@@ -221,13 +277,7 @@ export default function App() {
               />
             ) : (
               <View style={styles.imagePlaceholder}>
-
-                <Ionicons
-                  name="camera-outline"
-                  size={42}
-                  color="#94a3b8"
-                />
-
+                <Entypo name="camera" size={24} color="skyblue" />
                 <Text style={styles.imageText}>
                   Seleccionar foto
                 </Text>
@@ -239,13 +289,7 @@ export default function App() {
           <View style={styles.inputsContainer}>
 
             <View style={styles.inputWrapper}>
-
-              <Ionicons
-                name="fast-food-outline"
-                size={20}
-                color="#38bdf8"
-              />
-
+              <MaterialIcons name="fastfood" size={24} color="skyblue" />
               <TextInput
                 value={nombre}
                 onChangeText={setNombre}
@@ -256,13 +300,7 @@ export default function App() {
             </View>
 
             <View style={styles.inputWrapper}>
-
-              <Ionicons
-                name="business-outline"
-                size={20}
-                color="#38bdf8"
-              />
-
+              <FontAwesome5 name="city" size={24} color="skyblue" />
               <TextInput
                 value={ciudad}
                 onChangeText={setCiudad}
@@ -273,13 +311,7 @@ export default function App() {
             </View>
 
             <View style={styles.inputWrapper}>
-
-              <Ionicons
-                name="earth-outline"
-                size={20}
-                color="#38bdf8"
-              />
-
+              <Fontisto name="world" size={20} color="skyblue" />
               <TextInput
                 value={pais}
                 onChangeText={setPais}
@@ -295,8 +327,7 @@ export default function App() {
             onPress={() => setShowMapSelector(true)}
             style={styles.locationBtn}
           >
-            <LinearGradient
-              colors={manualLat ? ['#059669', '#10b981'] : ['#1e293b', '#334155']}
+            <View
               style={styles.locationBtnInner}
             >
               <Ionicons
@@ -317,7 +348,7 @@ export default function App() {
                   <Ionicons name="close-circle" size={20} color="#f87171" />
                 </Pressable>
               )}
-            </LinearGradient>
+            </View>
           </Pressable>
 
           {/* ERROR */}
@@ -335,26 +366,21 @@ export default function App() {
             disabled={agregarMutation.isPending}
             style={styles.buttonWrapper}
           >
-            <LinearGradient
-              colors={['#006391', '#0891b2']}
+            <View
               style={styles.button}
             >
               {agregarMutation.isPending ? (
                 <ActivityIndicator color="white" />
               ) : (
                 <>
-                  <Ionicons
-                    name="add-circle-outline"
-                    size={22}
-                    color="white"
-                  />
+                  <Ionicons name="add-circle" size={24} color="skyblue" />
 
                   <Text style={styles.buttonText}>
                     Registrar plato
                   </Text>
                 </>
               )}
-            </LinearGradient>
+            </View>
           </Pressable>
         </View>
 
@@ -363,8 +389,8 @@ export default function App() {
           Platos registrados
         </Text>
 
+              
         {/* LISTA */}
-         
               
         <FlatList
           scrollEnabled={false}
@@ -375,64 +401,25 @@ export default function App() {
           }}
           ListEmptyComponent={
             <View style={styles.emptyCard}>
-
+              
               <Ionicons
-                name="restaurant-outline"
+                name="restaurant"
                 size={42}
                 color="#94a3b8"
               />
-
+              
               <Text style={styles.emptyText}>
                 Todavía no hay platos registrados
               </Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <Pressable
+          renderItem={({ item, index }) => (
+            <PlatoListItem
+              item={item}
+              index={index}
               onPress={() => router.push(`/Plato/${item.id}` as any)}
-              style={styles.platoCard}
-            >
-
-              {item.photo_uri && (
-                <Image
-                  source={{ uri: item.photo_uri }}
-                  style={styles.platoImage}
-                />
-              )}
-
-              <View style={styles.platoContent}>
-
-                <Text style={styles.platoTitle}>
-                  {item.name}
-                </Text>
-
-                {(item.city || item.country) && (
-                  <View style={styles.locationRow}>
-
-                    <Ionicons
-                      name="location-outline"
-                      size={18}
-                      color="#22d3ee"
-                    />
-
-                    <Text style={styles.locationText}>
-                      {[item.city, item.country]
-                        .filter(Boolean)
-                        .join(', ')}
-                    </Text>
-                  </View>
-                )}
-
-                {item.latitude && item.longitude && (
-                  <Text style={styles.coords}>
-                    {item.latitude.toFixed(4)},
-                    {' '}
-                    {item.longitude.toFixed(4)}
-                  </Text>
-                  
-                )}
-              </View>
-            </Pressable>
+               onDelete={() => handleEliminar(item.id)}
+            />
           )}
         />
       </ScrollView>
@@ -447,13 +434,14 @@ export default function App() {
           onClose={() => setShowMapSelector(false)}
         />
       </Modal>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#340156bb',
   },
 
   scroll: {
@@ -470,7 +458,7 @@ const styles = StyleSheet.create({
   },
 
   sessionText: {
-    color: '#94a3b8',
+    color: '#e3ecf8',
     fontSize: 14,
   },
 
@@ -484,21 +472,19 @@ const styles = StyleSheet.create({
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 18,
-  },
-
-  logoutText: {
-    color: 'white',
-    fontWeight: '700',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 100,
+    backgroundColor: '#7668AF',
+    borderWidth: 1,
+    borderColor: '#cd71f86d',
   },
 
   card: {
-    backgroundColor: 'rgba(30,41,59,0.85)',
+    backgroundColor: '#7668AF',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#612278',
     borderRadius: 28,
     padding: 20,
     marginBottom: 28,
@@ -514,7 +500,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: '#06b6d4',
+    backgroundColor: '#fc79ed9c',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
@@ -527,7 +513,7 @@ const styles = StyleSheet.create({
   },
 
   cardSubtitle: {
-    color: '#94a3b8',
+    color: 'rgb(212, 217, 223)',
     marginTop: 4,
   },
 
@@ -538,7 +524,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: '#475569',
     overflow: 'hidden',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#2f174683',
     marginBottom: 22,
   },
 
@@ -566,9 +552,9 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: '#2f174683',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: 'white',
     borderRadius: 20,
     paddingHorizontal: 16,
   },
@@ -599,6 +585,7 @@ const styles = StyleSheet.create({
     marginTop: 22,
     overflow: 'hidden',
     borderRadius: 22,
+    backgroundColor: '#c966ff9d',
   },
 
   button: {
@@ -606,6 +593,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
+    backgroundColor: '#c966ff9d',
   },
 
   buttonText: {
@@ -630,15 +618,15 @@ const styles = StyleSheet.create({
   },
 
   emptyText: {
-    color: '#94a3b8',
+    color: '#0e1012',
     marginTop: 14,
     textAlign: 'center',
   },
 
   platoCard: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#7668AF',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#612278',
     borderRadius: 28,
     overflow: 'hidden',
   },
@@ -652,10 +640,25 @@ const styles = StyleSheet.create({
     padding: 20,
   },
 
+  platoTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   platoTitle: {
     color: 'white',
     fontSize: 22,
     fontWeight: '800',
+    flex: 1,
+  },
+  deleteIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(239,68,68,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 12,
   },
 
   locationRow: {
@@ -670,7 +673,7 @@ const styles = StyleSheet.create({
   },
 
   coords: {
-    color: '#64748b',
+    color: '#0b0d0f',
     fontSize: 12,
     marginTop: 12,
   },
@@ -679,6 +682,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     borderRadius: 18,
     overflow: 'hidden',
+    backgroundColor: "#c966ff9d",
   },
   locationBtnInner: {
     flexDirection: 'row',
@@ -690,7 +694,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   locationBtnText: {
-    color: '#94a3b8',
+    color: '#eef1f6',
     fontWeight: '600',
     fontSize: 14,
   },

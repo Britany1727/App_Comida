@@ -2,7 +2,8 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LeafletMap } from './LeafletMap';
 import { useLocation } from '../hooks/useLocation';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
+import { getDistance } from 'geolib';
 
 interface MapViewProps {
   platoLat: number;
@@ -17,6 +18,11 @@ export function MapView({ platoLat, platoLng, platoName, onClose }: MapViewProps
   useEffect(() => {
     getPosition();
   }, []);
+
+  const distance = useMemo(() => {
+    if (!location) return null;
+    return getDistance(location, { latitude: platoLat, longitude: platoLng });
+  }, [location, platoLat, platoLng]);
 
   return (
     <View style={styles.container}>
@@ -41,6 +47,8 @@ export function MapView({ platoLat, platoLng, platoName, onClose }: MapViewProps
         markerLng={platoLng}
         userLat={location?.latitude}
         userLng={location?.longitude}
+        distanceMeters={distance}
+        platoName={platoName}
         zoom={15}
       />
 
@@ -67,7 +75,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 50,
     paddingBottom: 12,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#7668AF',
     gap: 12,
   },
   backButton: {
